@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 const cors = require('cors')
 const bcrypt = require('bcryptjs')
 const bcryptSalt = bcrypt.genSaltSync(8)
+const cookieParser = require('cookie-parser')
 const User = require('./models/User')
 const jwt = require('jsonwebtoken')
 const jwtSecret = 'knhhkojijhjhoh9ug0u'
@@ -15,6 +16,7 @@ app.use(
     origin: 'http://localhost:5173',
   }),
 )
+app.use(cookieParser())
 mongoose.connect(process.env.MONGOURL)
 
 app.get('/test', (req, res) => {
@@ -45,7 +47,7 @@ app.post('/login', async (req, res) => {
         jwtSecret,
         {},
         (err, token) => {
-          if (err) throw err;
+          if (err) throw err
           res.cookie('token', token).json(userDoc)
         },
       )
@@ -54,6 +56,19 @@ app.post('/login', async (req, res) => {
     }
   } else {
     res.status(404).json('User not found')
+  }
+})
+app.get('/profile', (req, res) => {
+  const token = req.cookies.token
+  if (token) {
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err
+      const {name,email,_id} = await User.findById(userData.id)
+
+      res.json({name,email,_id})
+    })
+  } else {
+    res.json(null)
   }
 })
 app.listen(4000, () => {

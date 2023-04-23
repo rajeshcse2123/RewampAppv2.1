@@ -11,12 +11,12 @@ export default function LoginPage() {
   const handleLoginSubmit = async (ev) => {
     ev.preventDefault()
     try {
-      const {data} = await axios.post('/login', { email, password })
-      // setUser(data);
+      const { data } = await axios.post('/login', { email, password })
+      setUser(data)
       alert('Login Successful')
       setRedirect(true)
     } catch (e) {
-      alert('Login Invalid',)
+      alert('Login Invalid')
       console.log(e)
     }
   }
