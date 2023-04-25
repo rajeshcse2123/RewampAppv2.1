@@ -8,9 +8,10 @@ export default function AccountPage() {
   const [redirect, setRedirect] = useState(null);
   let { subpage } = useParams()
   if (subpage === undefined) subpage = 'profile'
-  console.log(subpage)
+
   if (!ready) return 'loading...'
   if (!user && ready && !redirect) return <Navigate to={'/login'} />
+  
   function linkClasses(type = null) {
     let classes = 'py-2 px-6 '
     if (type === subpage) {
