@@ -8,6 +8,9 @@ const cookieParser = require('cookie-parser')
 const User = require('./models/User')
 const jwt = require('jsonwebtoken')
 const jwtSecret = 'knhhkojijhjhoh9ug0u'
+const imageDownloader = require('image-downloader')
+const multer = require('multer')
+const fs = require('fs')
 require('dotenv').config()
 app.use(express.json())
 app.use(
@@ -16,6 +19,7 @@ app.use(
     origin: 'http://localhost:5173',
   }),
 )
+app.use('/uploads', express.static(__dirname + '/uploads'))
 app.use(cookieParser())
 mongoose.connect(process.env.MONGOURL)
 
@@ -63,17 +67,46 @@ app.get('/profile', (req, res) => {
   if (token) {
     jwt.verify(token, jwtSecret, {}, async (err, userData) => {
       if (err) throw err
-      const {name,email,_id} = await User.findById(userData.id)
+      const { name, email, _id } = await User.findById(userData.id)
 
-      res.json({name,email,_id})
+      res.json({ name, email, _id })
     })
   } else {
     res.json(null)
   }
 })
 app.post('/logout', (req, res) => {
-  res.cookie('token','').json(true)
+  res.cookie('token', '').json(true)
 })
+app.post('/upload-by-link', async (req, res) => {
+  const { Link } = req.body
+  const newName = 'photo' + Date.now() + '.jpg'
+  await imageDownloader.image({
+    url: Link,
+    dest: __dirname + '/uploads/' + newName,
+  })
+  res.status(200).json(newName)
+})
+const photosMiddleware = multer({ dest: __dirname + '/uploads/' })
+
+app.post('/upload', photosMiddleware.array('photos', 100), (req, res) => {
+  const uploadedFiles = []
+
+  for (let i = 0; i < req.files.length; i++) {
+    const { path, originalname } = req.files[i]
+
+    const parts = originalname.split('.')
+
+    const ext = parts[parts.length - 1]
+
+    const newPath = path + '.' + ext
+    fs.renameSync(path, newPath)
+    uploadedFiles.push(newPath.replace('uploads/', ''))
+  }
+  res.json(uploadedFiles)
+})
+
+
 app.listen(4000, () => {
   console.log('Started in port ', 4000)
 })
