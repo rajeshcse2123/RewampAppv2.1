@@ -24,7 +24,7 @@ export default function Header() {
           <span className="font-bold text-lg">HotelWala</span>
         </Link>
 
-        <div className="flex gap-2  border rounded-full py-2 px-4 shadow-lg shadow-gray-300 border-gray-300">
+        <div className="flex gap-2  border rounded-full py-2 px-4 shadow-lg shadow-gray-300 border-gray-300 cursor-pointer">
           <div>Anywhere</div>
           <div className=" border-l border-gray-300"></div>
           <div>Any Week</div>

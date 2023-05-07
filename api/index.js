@@ -9,8 +9,10 @@ const User = require('./models/User')
 const jwt = require('jsonwebtoken')
 const jwtSecret = 'knhhkojijhjhoh9ug0u'
 const imageDownloader = require('image-downloader')
+const Place = require('./models/Place')
 const multer = require('multer')
 const fs = require('fs')
+
 require('dotenv').config()
 app.use(express.json())
 app.use(
@@ -26,6 +28,7 @@ mongoose.connect(process.env.MONGOURL)
 app.get('/test', (req, res) => {
   res.json('Test Ok')
 })
+
 app.post('/register', async (req, res) => {
   const { name, email, password } = req.body
   try {
@@ -62,6 +65,7 @@ app.post('/login', async (req, res) => {
     res.status(404).json('User not found')
   }
 })
+
 app.get('/profile', (req, res) => {
   const token = req.cookies.token
   if (token) {
@@ -75,9 +79,11 @@ app.get('/profile', (req, res) => {
     res.json(null)
   }
 })
+
 app.post('/logout', (req, res) => {
   res.cookie('token', '').json(true)
 })
+
 app.post('/upload-by-link', async (req, res) => {
   const { Link } = req.body
   const newName = 'photo' + Date.now() + '.jpg'
@@ -87,6 +93,7 @@ app.post('/upload-by-link', async (req, res) => {
   })
   res.status(200).json(newName)
 })
+
 const photosMiddleware = multer({ dest: __dirname + '/uploads/' })
 
 app.post('/upload', photosMiddleware.array('photos', 100), (req, res) => {
@@ -106,6 +113,104 @@ app.post('/upload', photosMiddleware.array('photos', 100), (req, res) => {
   res.json(uploadedFiles)
 })
 
+app.post('/places', async (req, res) => {
+  const { token } = req.cookies
+  const {
+    title,
+    address,
+    addedPhotos,
+    description,
+    price,
+    perks,
+    extraInfo,
+    checkIn,
+    checkOut,
+    maxGuests,
+  } = req.body
+
+  if (token) {
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      if (err) throw err
+
+      const placeDoc = await Place.create({
+        owner:userData.id,price,
+        title,address,photos:addedPhotos,description,
+        perks,extraInfo,checkIn,checkOut,maxGuests,
+      });
+
+      res.json(placeDoc) // move inside the callback
+    })
+  } else {
+    res.status(401).json('Unauthorized')
+  }
+})
+
+app.get('/places', async (req, res) => {
+  const { token } = req.cookies
+  if (!token) {
+    return res.status(401).json('Unauthorized')
+  }
+  try {
+    jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+      // const places = await Place.find({ owner: decodedToken.id })
+      const { id } = userData
+      const places = await Place.find({ owner: id })
+      res.json(places)
+    })
+  } catch (err) {
+    res.status(401).json('Unauthorized')
+  }
+})
+
+app.get('/places/:id', async (req, res) => {
+  const { id } = req.params
+  res.json(await Place.findById(id))
+})
+
+app.put('/places', async (req, res) => {
+  const { token } = req.cookies
+  const {
+    id,
+    title,
+    address,
+    photos: addedPhotos,
+    description,
+    extrainfo,
+    checkin,
+    checkout,
+    maxGuest,
+    perks,
+  } = req.body
+
+  jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+    if (err) throw err
+    const placeDoc = await Place.findById(id)
+
+    if (userData.id === placeDoc.owner.toString()) {
+      placeDoc.set({
+        title,
+        address,
+        photos: addedPhotos,
+        description,
+        
+        perks,
+        extrainfo,
+        checkin,
+        checkout,
+        maxGuest,
+      })
+      await placeDoc.save()
+      res.json(placeDoc)
+    }
+  })
+})
+
+
+app.delete('/places/:id', async (req, res) => {
+  const { id } = req.params
+  await Place.findByIdAndDelete(id)
+  res.json(true)
+})
 
 app.listen(4000, () => {
   console.log('Started in port ', 4000)
